@@ -53,3 +53,19 @@ There may be interesting code in there:
    - smoosh.cpp
    - unixnfc.cpp
 
+REFACTOR
+--------
+- move to ivec2:
+  - scale_put, scale_put_trans
+  - fg_width, etc.
+
+Jwindow::_x1 _x2
+
+VolumeWindow::draw_vol plus grand !!
+
+x, y in game_object?
+snap_x() snap_y()
+xstart() / xend() etc.
+jwindow::area
+button::area
+
