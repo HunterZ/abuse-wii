@@ -37,7 +37,12 @@ enum
     CMD_PUTPCX,
 };
 
+#if ((defined(__wii__) || defined(__gamecube__)) && !defined(main))
+// wii/gc needs SDL_main unless -Dmain=SDL_main has been defined
+extern "C" int SDL_main(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
     if (argc < 3)
     {

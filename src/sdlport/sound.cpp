@@ -160,7 +160,12 @@ void sound_effect::play(int volume, int pitch, int panpot)
     if (channel > -1)
     {
         Mix_Volume(channel, volume);
+#if (defined(__wii__) || defined(__gamecube__))
+        // SDL_Wii has the L/R channels reversed for some reason
+        Mix_SetPanning(channel, 255 - panpot, panpot);
+#else
         Mix_SetPanning(channel, panpot, 255 - panpot);
+#endif
     }
 }
 

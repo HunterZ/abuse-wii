@@ -290,8 +290,18 @@ jFILE::jFILE(FILE *file_pointer)                       // assumes fp is at begin
 void jFILE::open_external(char const *filename, char const *mode, int flags)
 {
   int skip_size=0;
+#if (defined(__wii__) || defined(__gamecube__))
+  // why is every filename array a different size in this game engine?
+  char tmp_name[255];
+
+  // on Wii, absolute paths start with sd:/ or usb:/ not just /
+  if (spec_prefix && filename[0] != '/' && 
+      strncasecmp("usb:/", filename, 5) && 
+      strncasecmp("sd:/", filename, 4))
+#else
   char tmp_name[200];
   if (spec_prefix && filename[0] != '/')
+#endif
     sprintf(tmp_name,"%s%s",spec_prefix,filename);
   else strcpy(tmp_name,filename);
 

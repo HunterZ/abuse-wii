@@ -92,9 +92,23 @@ tcpip_protocol tcpip;
 FILE *open_FILE(char const *filename, char const *mode)
 {
     /* FIXME: potential buffer overflow here */
+#if (defined(__wii__) || defined(__gamecube__))
+    // why is every filename array a different size in this game engine?
+    char tmp_name[255];
+
+    // on Wii, absolute paths start with sd:/ or usb:/ not just /
+    if(get_filename_prefix() && filename[0] != '/' && 
+       strncasecmp(filename, "usb:/", 5) && 
+       strncasecmp(filename, "sd:/", 4))
+    {
+        // also, why the space between strings?
+        sprintf(tmp_name, "%s%s", get_filename_prefix(), filename);
+    }
+#else
     char tmp_name[200];
     if(get_filename_prefix() && filename[0] != '/')
         sprintf(tmp_name, "%s %s", get_filename_prefix(), filename);
+#endif
     else
         strcpy(tmp_name, filename);
     return fopen(tmp_name, mode);
@@ -1376,6 +1390,11 @@ Game::Game(int argc, char **argv)
     exit(0);
   }
 
+#if (defined(__wii__) || defined(__gamecube__))
+  // mouse cursor is garbled on gamma correct screen without this
+  wm->SetMouseShape(cache.img(c_normal)->copy(), ivec2(1));
+#endif
+
   gamma_correct(pal);
 
   if(main_net_cfg == NULL || (main_net_cfg->state != net_configuration::SERVER &&
@@ -2269,7 +2288,12 @@ void game_net_init(int argc, char **argv)
   }
 }
 
+#if ((defined(__wii__) || defined(__gamecube__)) && !defined(main))
+// wii/gc needs SDL_main unless -Dmain=SDL_main has been defined
+extern "C" int SDL_main(int argc, char **argv)
+#else
 int main(int argc, char *argv[])
+#endif
 {
     start_argc = argc;
     start_argv = argv;

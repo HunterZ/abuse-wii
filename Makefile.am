@@ -4,6 +4,8 @@ SUBDIRS = src data doc
 
 EXTRA_DIST = COPYING.GPL COPYING.WTFPL PACKAGERS bootstrap
 
+ACLOCAL_AMFLAGS = -I m4
+
 dist-hook:
 	@echo ""
 	@echo "          ===================================================="

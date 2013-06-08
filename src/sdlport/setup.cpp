@@ -38,6 +38,10 @@
 #endif    /* __APPLE__ */
 #endif    /* HAVE_OPENGL */
 
+#if (defined(__wii__) || defined(__gamecube__))
+#include <fat.h> // wii-specific filesystem library
+#endif
+
 #include "specs.h"
 #include "keys.h"
 #include "setup.h"
@@ -88,21 +92,25 @@ void showHelp()
 //
 void createRCFile( char *rcfile )
 {
+#if (defined(__wii__) || defined(__gamecube__))
+    // not useful for Wii
+    return;
+#else
     FILE *fd = NULL;
 
     if( (fd = fopen( rcfile, "w" )) != NULL )
     {
         fputs( "; Abuse-SDL Configuration file\n\n", fd );
         fputs( "; Startup fullscreen\nfullscreen=0\n\n", fd );
-        #ifdef __APPLE__
+#ifdef __APPLE__
         fputs( "; Use DoubleBuffering\ndoublebuf=1\n\n", fd );
         fputs( "; Use OpenGL\ngl=1\n\n", fd );
-        #else
+#else
         fputs( "; Use DoubleBuffering\ndoublebuf=0\n\n", fd );
         fputs( "; Use OpenGL\ngl=0\n\n", fd );
         fputs( "; Location of the datafiles\ndatadir=", fd );
         fputs( ASSETDIR "\n\n", fd );
-        #endif
+#endif
         fputs( "; Use mono audio only\nmono=0\n\n", fd );
         fputs( "; Grab the mouse to the window\ngrabmouse=0\n\n", fd );
         fputs( "; Set the scale factor\nscale=2\n\n", fd );
@@ -119,6 +127,7 @@ void createRCFile( char *rcfile )
     {
         printf( "Unable to create 'abuserc' file.\n" );
     }
+#endif
 }
 
 //
@@ -126,6 +135,10 @@ void createRCFile( char *rcfile )
 //
 void readRCFile()
 {
+#if (defined(__wii__) || defined(__gamecube__))
+    // not useful for Wii
+    return;
+#else
     FILE *fd = NULL;
     char *rcfile;
     char buf[255];
@@ -251,6 +264,7 @@ void readRCFile()
         createRCFile( rcfile );
     }
     free( rcfile );
+#endif
 }
 
 //
@@ -357,10 +371,13 @@ void setup( int argc, char **argv )
 #ifdef __APPLE__
     flags.gl                = 1;            // Use opengl
     flags.doublebuf            = 1;            // Do double buffering
+#elif (defined(__wii__) || defined(__gamecube__))
+    flags.gl                = 0;            // Don't use opengl
+    flags.doublebuf            = 1;            // Do double buffering
 #else
     flags.gl                = 0;            // Don't use opengl
     flags.doublebuf            = 0;            // No double buffering
-    #endif
+#endif
 #ifdef HAVE_OPENGL
     flags.antialias            = GL_NEAREST;    // Don't anti-alias
 #endif
@@ -375,17 +392,83 @@ void setup( int argc, char **argv )
     // Display our name and version
     printf( "%s %s\n", PACKAGE_NAME, PACKAGE_VERSION );
 
+#if (defined(__wii__) || defined(__gamecube__))
+    // Initialize Wii filesystem so that disk I/O can occur
+    if(!fatInitDefault())
+    {
+        printf( "WARNING: Unable to initialize filesystem(s).\n" );
+        printf( "         This may result in an inability to read/write game files.\n" );
+    }
+
+    // Initialize Wii SDL with video, audio and joystick support
+    if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK ) < 0 )
+#else
     // Initialize SDL with video and audio support
     if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) < 0 )
+#endif
     {
         printf( "Unable to initialise SDL : %s\n", SDL_GetError() );
         exit( 1 );
     }
     atexit( SDL_Quit );
 
+#if (defined(__wii__) || defined(__gamecube__))
+    // Init joystick and enable SDL joystick event generation mode
+    SDL_JoystickEventState(SDL_ENABLE);
+
+    if (!SDL_JoystickOpen(0))
+    {
+        printf( "WARNING: SDL_JoystickOpen(0) returned NULL.\n" );
+        printf( "         Ensure that Wiimote is powered on and connected.\n" );
+    }
+#endif
+
     // Set the savegame directory
     char *homedir;
     char *savedir;
+
+#if (defined(__wii__) || defined(__gamecube__))
+    // On Wii, savedir is stored as a data/ subdirectory of the path 
+    // containing the game binary. Wii needs absolute paths for some reason, so 
+    // determine the path the binary is running from and use that as a base.
+    savedir = NULL;
+    const char* savedirname = "save/";
+    int savedirlen(strlen(savedirname));
+
+    // find slash at end of last directory name
+    for (int i = strlen(argv[0]) - 1; i >= 0; --i)
+    {
+        if (argv[0][i] == '/')
+        {
+            savedir = new char[i + savedirlen + 2];
+            if (savedir != NULL)
+            {
+                savedir[i + savedirlen + 1] = '\0';
+                strncpy(savedir, argv[0], i + 1);
+                strcpy(savedir + i + 1, savedirname);
+            }
+
+            break;
+        }
+    }
+
+    if (savedir == NULL)
+    {
+        // something went wrong, default to hard-coded path
+        // this allows running via wiiload if the data/save dirs are on SD
+        printf("WARNING: Unable to determine save directory path.\n");
+        printf("         Will try sd:/apps/abuse/save/\n");
+
+        set_save_filename_prefix("sd:/apps/abuse/save/");
+    }
+    else
+    {
+//        printf("Using save path: %s\n", savedir);
+
+        set_save_filename_prefix(savedir);
+        delete savedir;
+    }
+#else
     FILE *fd = NULL;
 
     if( (homedir = getenv( "HOME" )) != NULL )
@@ -414,10 +497,11 @@ void setup( int argc, char **argv )
         // Hopefully they have write permissions....
         set_save_filename_prefix( "" );
     }
+#endif
 
     // Set the datadir to a default value
     // (The current directory)
-    #ifdef __APPLE__
+#ifdef __APPLE__
     UInt8 buffer[255];
     CFURLRef bundleurl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
     CFURLRef url = CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault, bundleurl, CFSTR("Contents/Resources/data"), true);
@@ -428,9 +512,53 @@ void setup( int argc, char **argv )
     }
     else
         set_filename_prefix( (const char*)buffer );
-    #else
+#elif (defined(__wii__) || defined(__gamecube__))
+    // On Wii, assetdir/datadir is stored as a data/ subdirectory of the path 
+    // containing the game binary. Wii needs absolute paths for some reason, so 
+    // determine the path the binary is running from and use that as a base.
+    //
+    // note that we're hijacking the homedir variable here because it isn't 
+    // otherwise used for Wii, and using it also eliminates a compiler warning.
+    homedir = NULL;
+    const char* assetdirname("data/");
+    int assetdirlen(strlen(assetdirname));
+
+    // find slash at end of last directory name
+    for (int i = strlen(argv[0]) - 1; i >= 0; --i)
+    {
+        if (argv[0][i] == '/')
+        {
+            homedir = new char[i + assetdirlen + 2];
+            if (homedir != NULL)
+            {
+                homedir[i + assetdirlen + 1] = '\0';
+                strncpy(homedir, argv[0], i + 1);
+                strcpy(homedir + i + 1, assetdirname);
+            }
+
+            break;
+        }
+    }
+
+    if (homedir == NULL)
+    {
+        // something went wrong, default to hard-coded path
+        // this allows running via wiiload if the data/save dirs are on SD
+        printf("WARNING: Unable to determine data directory path.\n");
+        printf("         Will try sd:/apps/abuse/data/\n");
+
+        set_filename_prefix("sd:/apps/abuse/data/");
+    }
+    else
+    {
+//        printf("Using data path: %s\n", homedir);
+
+        set_filename_prefix(homedir);
+        delete homedir;
+    }
+#else
     set_filename_prefix( ASSETDIR );
-    #endif
+#endif
 
     // Load the users configuration
     readRCFile();

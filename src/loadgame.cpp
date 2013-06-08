@@ -94,7 +94,14 @@ int get_save_spot()
   int i=MAX_SAVE_GAMES,last_free=0;
   for (; i>0; )
   {
+#if (defined(__wii__) || defined(__gamecube__))
+    // why is every filename array a different size in this game engine?
+    //
+    // Wii can have a long filename due to absolute paths
+    char name[255];
+#else
     char name[20];
+#endif
     sprintf(name,"%ssave%04d.spe", get_save_filename_prefix(),i);
     FILE *fp=open_FILE(name,"rb");
     if (fp)

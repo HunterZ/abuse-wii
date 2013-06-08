@@ -1,0 +1,73 @@
+#!/bin/sh
+
+#prefix=/opt/devkitpro/libogc
+prefix=/opt/devkitpro
+exec_prefix=${prefix}
+exec_prefix_set=no
+
+#incdir0=`pwd`/src/sdl-wii/include
+incdir=${exec_prefix}/libogc/include
+incdir2=${exec_prefix}/libogc/include/SDL
+incdir3=${exec_prefix}/portlibs/ppc/include
+
+#libdir0=`pwd`/src/sdl-wii/lib
+libdir=${exec_prefix}/libogc/lib/wii
+libdir2=${exec_prefix}/portlibs/ppc/lib
+
+#usage="\
+#Usage: sdl-config [--prefix[=DIR]] [--exec-prefix[=DIR]] [--version] [--cflags] [--libs]"
+usage="\
+Usage: sdl-config [--prefix[=DIR]] [--exec-prefix[=DIR]] [--version] [--cflags] [--libs] [--static-libs]"
+
+if test $# -eq 0; then
+      echo "${usage}" 1>&2
+      exit 1
+fi
+
+while test $# -gt 0; do
+  case "$1" in
+  -*=*) optarg=`echo "$1" | LC_ALL="C" sed 's/[-_a-zA-Z0-9]*=//'` ;;
+  *) optarg= ;;
+  esac
+
+  case $1 in
+    --prefix=*)
+      prefix=$optarg
+      if test $exec_prefix_set = no ; then
+        exec_prefix=$optarg
+      fi
+      ;;
+    --prefix)
+      echo $prefix
+      ;;
+    --exec-prefix=*)
+      exec_prefix=$optarg
+      exec_prefix_set=yes
+      ;;
+    --exec-prefix)
+      echo $exec_prefix
+      ;;
+    --version)
+      echo 1.2.13
+      ;;
+    --cflags)
+#      echo -I${prefix}/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT
+#      echo -mrvl -I${incdir} -I${incdir2} -I${incdir3} -Dmain=SDL_main
+      echo -mrvl -I${incdir} -I${incdir2} -I${incdir3} 
+      ;;
+    --libs)
+#      echo -L${exec_prefix}/lib  -lSDL
+      echo -mrvl -L${libdir} -L${libdir2} -lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg -lSDL -ljpeg -lpng -lfreetype -lvorbisidec -lz -lfat -lwiiuse -lbte -lwiikeyboard -logc -lm
+      ;;
+    --static-libs)
+#    --libs|--static-libs)
+#      echo -L${exec_prefix}/lib  -lSDL  -lpthread  -lm -ldl  -lasound -lm -ldl -lpthread -lesd   -lpulse-simple -lpulse   -laa -L/usr/lib -lcaca -lpthread
+      echo -mrvl -L${libdir} -L${libdir2} -lSDL_net -lSDL_ttf -lSDL_gfx -lSDL_mixer -lSDL_image -lsmpeg -lSDL -ljpeg -lpng -lfreetype -lvorbisidec -lz -lfat -lwiiuse -lbte -lwiikeyboard -logc -lm
+      ;;
+    *)
+      echo "${usage}" 1>&2
+      exit 1
+      ;;
+  esac
+  shift
+done

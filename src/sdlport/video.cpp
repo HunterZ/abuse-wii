@@ -113,8 +113,13 @@ void set_mode(int mode, int argc, char **argv)
     // Set the icon for this window.  Looks nice on taskbars etc.
     SDL_WM_SetIcon(SDL_LoadBMP("abuse.bmp"), NULL);
 
+#if (defined(__wii__) || defined(__gamecube__))
+    // Wii SDL doesn't seem to fall-back to 16bpp, so just set 16bpp directly
+    window = SDL_SetVideoMode(flags.xres, flags.yres, 16, vidFlags | SDL_ANYFORMAT);
+#else
     // Create the window with a preference for 8-bit (palette animations!), but accept any depth */
     window = SDL_SetVideoMode(flags.xres, flags.yres, 8, vidFlags | SDL_ANYFORMAT);
+#endif
     if(window == NULL)
     {
         printf("Video : Unable to set video mode : %s\n", SDL_GetError());

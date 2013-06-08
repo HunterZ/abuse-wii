@@ -1,12 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(abuse, 0.8)
+AC_INIT([abuse],[0.8])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR(.auto)
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
 AC_PROG_LIBTOOL
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
@@ -125,7 +126,7 @@ dnl For OpenGL support on OSX it's better to use Project Builder as -lGL
 dnl doesn't seem to work this way.
 AC_MSG_CHECKING(for OpenGL support)
 have_opengl=no
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     #ifdef WIN32
     #include <windows.h>
     #elif defined(__APPLE__) && defined(__MACH__)
@@ -133,9 +134,7 @@ AC_TRY_COMPILE([
     #error	/* Error so the compile fails on OSX */
     #else
     #include <GL/gl.h>
-    #endif],
-  [],
-  [have_opengl=yes])
+    #endif]], [[]])],[have_opengl=yes],[])
 AC_MSG_RESULT($have_opengl)
 if test "x$have_opengl" = xyes; then
     CFLAGS="$CFLAGS -DHAVE_OPENGL"
@@ -143,7 +142,7 @@ if test "x$have_opengl" = xyes; then
     LIBS="$LIBS -lGL -lpthread"
 fi
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
     Makefile
     src/Makefile
     src/lisp/Makefile
@@ -154,6 +153,7 @@ AC_OUTPUT([
     doc/Makefile
     doc/abuse.6
     doc/abuse-tool.6])
+AC_OUTPUT
 
 echo "
 ------ Configuration for $PACKAGE $VERSION ------
