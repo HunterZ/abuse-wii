@@ -23,6 +23,12 @@ struct flags_struct
     short yres;
     short overlay;
     short gl;
+#if (defined(__wii__) || defined(__gamecube__))
+    short usevaxis;
+    short swapbuttons;
+    int hdeadzone;
+    int vdeadzone;
+#endif
     int antialias;
 };
 

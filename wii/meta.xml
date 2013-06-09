@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-  <app version="1">
+<app version="1">
     <name>Abuse Wii</name>
     <coder>Many</coder>
-    <version>0.8.682.1</version>
-    <release_date>20110918</release_date>
+    <version>0.8.684.2</version>
+    <release_date>20130608</release_date>
     <short_description>Abuse for the Wii</short_description>
-    <long_description>Abuse is a dark 2D side-scrolling platform game developed by Crack dot Com in 1995. It features beautiful lighting, realistic animation and nasty alien-like creatures to destroy. It is now maintained by Sam Hocevar in an attempt to prevent it from vanishing from the Internet. Wii port by HunterZ based on Sam Hocevar's source at http://abuse.zoy.org/
-    </long_description>
-  </app>
+    <long_description>Abuse is a dark 2D side-scrolling platform game developed by Crack dot Com in 1995. It features beautiful lighting, realistic animation and nasty alien-like creatures to destroy. It is now maintained by Sam Hocevar in an attempt to prevent it from vanishing from the Internet. Wii port by HunterZ based on Sam Hocevar's source at http://abuse.zoy.org/</long_description>
+    <arguments>
+        <!-- uncomment the below option to allow use of the analog stick to jump/climb/activate -->
+        <!-- <arg>-usevaxis</arg> -->
+        <!-- uncomment the following option to swap the jump/activate/climb shoulder button assignments -->
+        <!-- <arg>-swapbuttons</arg> -->
+        <!-- the following options specify the horizontal and vertical joystick deadzones in floating-point percents -->
+        <arg>-hdeadzone</arg><arg>15.0</arg>
+        <arg>-vdeadzone</arg><arg>50.0</arg>
+    </arguments>
+</app>

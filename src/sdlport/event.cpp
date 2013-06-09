@@ -33,16 +33,16 @@
 #include "timing.h"
 #include "sprite.h"
 #include "game.h"
+#include "setup.h"
 
+extern flags_struct flags;
 extern int get_key_binding(char const *dir, int i);
 extern int mouse_xscale, mouse_yscale;
 short mouse_buttons[5] = { 0, 0, 0, 0, 0 };
 
 #if (defined(__wii__) || defined(__gamecube__))
-// need to track joystick axis states across calls to event handler in order 
+// need to track joystick axis states across calls to event handler in order
 //  to simulate EV_KEYRELEASE events on return to center
-#define JOYAXISDEADZONE (static_cast<int>(32768.0 * 0.15))
-
 bool joyaxisstates[4] = { false, false, false, false }; // left, right, up, down
 
 // need to track D-pad buttons in order to merge up+left and down+right
@@ -96,7 +96,7 @@ void EventHandler::SysEvent(Event &ev)
     int x, y;
 #if (defined(__wii__) || defined(__gamecube__))
     // Don't care about button states on the Wii since they don't exist
-    // (eliminate compiler warning for unused variable)
+    // (eliminates compiler warning for unused buttons variable)
     SDL_GetMouseState(&x, &y);
 #else
     uint8_t buttons = SDL_GetMouseState(&x, &y);
@@ -108,7 +108,7 @@ void EventHandler::SysEvent(Event &ev)
     ev.type = EV_MOUSE_MOVE;
 
 #if (defined(__wii__) || defined(__gamecube__))
-    // On Wii, skip mouse button processing and simulate mouse buttons via 
+    // On Wii, skip mouse button processing and simulate mouse buttons via
     //  joystick button events. Do nothing here.
     //
     // Also, why is m_pos updated below instead of above?
@@ -161,7 +161,7 @@ void EventHandler::SysEvent(Event &ev)
     m_pos = ivec2(ev.mouse_move.x, ev.mouse_move.y);
 
 #if (defined(__wii__) || defined(__gamecube__))
-    // On Wii, skip mouse button processing and simulate mouse buttons via 
+    // On Wii, skip mouse button processing and simulate mouse buttons via
     //  joystick button events. Do nothing here.
 #else
     m_button = ev.mouse_button;
@@ -176,13 +176,13 @@ void EventHandler::SysEvent(Event &ev)
 
 #if (defined(__wii__) || defined(__gamecube__))
         case SDL_JOYAXISMOTION:
-            // default to EV_SPURIOUS in case user moves joystick without 
+            // default to EV_SPURIOUS in case user moves joystick without
             //  changing active zone (e.g. left->left)
             ev.key = EV_SPURIOUS;
 
             if (sdlev.jaxis.axis == 0)                        // horizontal axis
             {
-                if (sdlev.jaxis.value < -JOYAXISDEADZONE)     // left
+                if (sdlev.jaxis.value < -flags.hdeadzone)     // left
                 {
                     if (!joyaxisstates[0])
                     {
@@ -192,16 +192,16 @@ void EventHandler::SysEvent(Event &ev)
                     }
                     else if (joyaxisstates[1])
                     {
-                        // it's possible to move the stick to the other side so 
-                        //  fast that SDL misses the center point, so attempt 
-                        //  to catch this case while the stick moves around in 
+                        // it's possible to move the stick to the other side so
+                        //  fast that SDL misses the center point, so attempt
+                        //  to catch this case while the stick moves around in
                         //  the new zone
                         ev.type = EV_KEYRELEASE;
                         ev.key = JK_RIGHT;
                         joyaxisstates[1] = false;
                     }
                 }
-                else if (sdlev.jaxis.value > JOYAXISDEADZONE) // right
+                else if (sdlev.jaxis.value > flags.hdeadzone) // right
                 {
                     if (!joyaxisstates[1])
                     {
@@ -211,9 +211,9 @@ void EventHandler::SysEvent(Event &ev)
                     }
                     else if (joyaxisstates[0])
                     {
-                        // it's possible to move the stick to the other side so 
-                        //  fast that SDL misses the center point, so attempt 
-                        //  to catch this case while the stick moves around in 
+                        // it's possible to move the stick to the other side so
+                        //  fast that SDL misses the center point, so attempt
+                        //  to catch this case while the stick moves around in
                         //  the new zone
                         ev.type = EV_KEYRELEASE;
                         ev.key = JK_LEFT;
@@ -235,17 +235,16 @@ void EventHandler::SysEvent(Event &ev)
                     }
                 }
             }
-/*
-            else if (sdlev.jaxis.axis == 1)                   // vertical axis
+            else if (sdlev.jaxis.axis == 1 && flags.usevaxis) // vertical axis
             {
-                if (sdlev.jaxis.value < -JOYAXISDEADZONE)     // up
+                if (sdlev.jaxis.value < -flags.vdeadzone)     // up
                 {
                     ev.type = EV_KEY;
                     ev.key = JK_UP;
                     joyaxisstates[2] = true;
                     joyaxisstates[3] = false;
                 }
-                else if (sdlev.jaxis.value > JOYAXISDEADZONE) // down
+                else if (sdlev.jaxis.value > flags.vdeadzone) // down
                 {
                     ev.type = EV_KEY;
                     ev.key = JK_DOWN;
@@ -268,7 +267,6 @@ void EventHandler::SysEvent(Event &ev)
                     joyaxisstates[3] = false;
                 }
             }
-*/
             break;
 
         case SDL_JOYBUTTONDOWN:
@@ -331,13 +329,13 @@ void EventHandler::SysEvent(Event &ev)
                 case  7: // nunchuck Z
                 case 15: // classic ZL (only one or the other can be connected)
                     ev.type = EV_KEY;
-                    ev.key = JK_UP;
+                    ev.key = (flags.swapbuttons ? JK_DOWN : JK_UP);
                     break;
 
                 case  8: // nunchuck C
                 case 13: // classic L (only one or the other can be connected)
                     ev.type = EV_KEY;
-                    ev.key = JK_DOWN;
+                    ev.key = (flags.swapbuttons ? JK_UP : JK_DOWN);
                     break;
             }
             break;
@@ -402,13 +400,13 @@ void EventHandler::SysEvent(Event &ev)
                 case  7: // nunchuck Z
                 case 15: // classic ZL (only one or the other can be connected)
                     ev.type = EV_KEYRELEASE;
-                    ev.key = JK_UP;
+                    ev.key = (flags.swapbuttons ? JK_DOWN : JK_UP);
                     break;
 
                 case  8: // nunchuck C
                 case 13: // classic L (only one or the other can be connected)
                     ev.type = EV_KEYRELEASE;
-                    ev.key = JK_DOWN;
+                    ev.key = (flags.swapbuttons ? JK_UP : JK_DOWN);
                     break;
             }
             break;
@@ -417,8 +415,8 @@ void EventHandler::SysEvent(Event &ev)
             ev.key = EV_SPURIOUS;
 
             // check for release of up and left
-            if (joyhatstates[0] && 
-                (sdlev.jhat.value & 
+            if (joyhatstates[0] &&
+                (sdlev.jhat.value &
                  (SDL_HAT_CENTERED | SDL_HAT_RIGHT | SDL_HAT_DOWN)))
             {
                 // simulate mousewheel up release
@@ -427,8 +425,8 @@ void EventHandler::SysEvent(Event &ev)
                 joyhatstates[0] = false;
             }
             // check for release of down and right
-            else if (joyhatstates[1] && 
-                     (sdlev.jhat.value & 
+            else if (joyhatstates[1] &&
+                     (sdlev.jhat.value &
                       (SDL_HAT_CENTERED | SDL_HAT_LEFT | SDL_HAT_UP)))
             {
                 // simulate mousewheel down release
@@ -437,8 +435,8 @@ void EventHandler::SysEvent(Event &ev)
                 joyhatstates[1] = false;
             }
             // check for press of up and/or left
-            else if (!joyhatstates[0] && 
-                     (sdlev.jhat.value & 
+            else if (!joyhatstates[0] &&
+                     (sdlev.jhat.value &
                       (SDL_HAT_LEFT | SDL_HAT_UP)))
             {
                 // simulate mousewheel up press
@@ -447,8 +445,8 @@ void EventHandler::SysEvent(Event &ev)
                 joyhatstates[0] = true;
             }
             // check for press of down and/or right
-            else if (!joyhatstates[1] && 
-                     (sdlev.jhat.value & 
+            else if (!joyhatstates[1] &&
+                     (sdlev.jhat.value &
                       (SDL_HAT_RIGHT | SDL_HAT_DOWN)))
             {
                 // simulate mousewheel down press

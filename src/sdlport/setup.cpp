@@ -82,6 +82,13 @@ void showHelp()
     printf( "  -scale <arg>      Scale to <arg>\n" );
 //    printf( "  -x <arg>          Set the width to <arg>\n" );
 //    printf( "  -y <arg>          Set the height to <arg>\n" );
+#if (defined(__wii__) || defined(__gamecube__))
+    printf( "** abuse-wii Options **\n" );
+    printf( "  -swapbuttons      Swap jump/activate/climb button controls\n" );
+    printf( "  -usevaxis         Allow vertical axis to control jump/activate/climb\n" );
+    printf( "  -hdeadzone <arg>  Set horizontal axis deadzone to <arg> percent\n" );
+    printf( "  -vdeadzone <arg>  Set vertical axis deadzone to <arg> percent\n" );
+#endif
     printf( "\n" );
     printf( "Anthony Kruize <trandor@labyrinth.net.au>\n" );
     printf( "\n" );
@@ -352,6 +359,36 @@ void parseCommandLine( int argc, char **argv )
             showHelp();
             exit( 0 );
         }
+#if (defined(__wii__) || defined(__gamecube__))
+        else if( !strcasecmp( argv[ii], "-swapbuttons" ) )
+        {
+            flags.swapbuttons = 1;
+        }
+        else if( !strcasecmp( argv[ii], "-usevaxis" ) )
+        {
+            flags.usevaxis = 1;
+        }
+        else if( !strcasecmp( argv[ii], "-hdeadzone" ) )
+        {
+            float h;
+            if( sscanf( argv[++ii], "%f", &h ) &&
+                h > 0.0 && h < 100.0)
+            {
+                flags.hdeadzone = static_cast<int>(32768.0 * 0.01 * h);
+            }
+//            printf("hdeadzone: argv[%d]=%s -> %f -> %d\n", ii, argv[ii], h, flags.hdeadzone);
+        }
+        else if( !strcasecmp( argv[ii], "-vdeadzone" ) )
+        {
+            float v;
+            if( sscanf( argv[++ii], "%f", &v ) &&
+                v > 0.0 && v < 100.0)
+            {
+                flags.vdeadzone = static_cast<int>(32768.0 * 0.01 * v);
+            }
+//            printf("vdeadzone: argv[%d]=%s -> %f -> %d\n", ii, argv[ii], v, flags.vdeadzone);
+        }
+#endif
     }
 }
 
@@ -362,32 +399,36 @@ void setup( int argc, char **argv )
 {
     // Initialise default settings
     flags.fullscreen        = 0;            // Start in a window
-    flags.mono                = 0;            // Enable stereo sound
-    flags.nosound            = 0;            // Enable sound
-    flags.grabmouse            = 0;            // Don't grab the mouse
+    flags.mono              = 0;            // Enable stereo sound
+    flags.nosound           = 0;            // Enable sound
+    flags.grabmouse         = 0;            // Don't grab the mouse
     flags.nosdlparachute    = 0;            // SDL error handling
-    flags.xres = xres        = 320;            // Default window width
-    flags.yres = yres        = 200;            // Default window height
+    flags.xres = xres       = 320;          // Default window width
+    flags.yres = yres       = 200;          // Default window height
 #ifdef __APPLE__
     flags.gl                = 1;            // Use opengl
-    flags.doublebuf            = 1;            // Do double buffering
+    flags.doublebuf         = 1;            // Do double buffering
 #elif (defined(__wii__) || defined(__gamecube__))
     flags.gl                = 0;            // Don't use opengl
-    flags.doublebuf            = 1;            // Do double buffering
+    flags.doublebuf         = 1;            // Do double buffering
+    flags.swapbuttons       = 0;            // Don't swap buttons
+    flags.usevaxis          = 0;            // Don't use vertical axis
+    flags.hdeadzone         = static_cast<int>(32768.0 * 0.15); // Default horizontal deadzone
+    flags.vdeadzone         = static_cast<int>(32768.0 * 0.30); // Default vertical deadzone
 #else
     flags.gl                = 0;            // Don't use opengl
-    flags.doublebuf            = 0;            // No double buffering
+    flags.doublebuf         = 0;            // No double buffering
 #endif
 #ifdef HAVE_OPENGL
-    flags.antialias            = GL_NEAREST;    // Don't anti-alias
+    flags.antialias         = GL_NEAREST;   // Don't anti-alias
 #endif
-    keys.up                    = key_value( "UP" );
-    keys.down                = key_value( "DOWN" );
-    keys.left                = key_value( "LEFT" );
-    keys.right                = key_value( "RIGHT" );
-    keys.b3                    = key_value( "CTRL_R" );
-    keys.b4                    = key_value( "INSERT" );
-    scale                    = 2;            // Default scale amount
+    keys.up                 = key_value( "UP" );
+    keys.down               = key_value( "DOWN" );
+    keys.left               = key_value( "LEFT" );
+    keys.right              = key_value( "RIGHT" );
+    keys.b3                 = key_value( "CTRL_R" );
+    keys.b4                 = key_value( "INSERT" );
+    scale                   = 2;            // Default scale amount
 
     // Display our name and version
     printf( "%s %s\n", PACKAGE_NAME, PACKAGE_VERSION );
@@ -428,8 +469,8 @@ void setup( int argc, char **argv )
     char *savedir;
 
 #if (defined(__wii__) || defined(__gamecube__))
-    // On Wii, savedir is stored as a data/ subdirectory of the path 
-    // containing the game binary. Wii needs absolute paths for some reason, so 
+    // On Wii, savedir is stored as a save/ subdirectory of the path
+    // containing the game binary. Wii needs absolute paths for some reason, so
     // determine the path the binary is running from and use that as a base.
     savedir = NULL;
     const char* savedirname = "save/";
@@ -463,8 +504,6 @@ void setup( int argc, char **argv )
     }
     else
     {
-//        printf("Using save path: %s\n", savedir);
-
         set_save_filename_prefix(savedir);
         delete savedir;
     }
@@ -513,11 +552,11 @@ void setup( int argc, char **argv )
     else
         set_filename_prefix( (const char*)buffer );
 #elif (defined(__wii__) || defined(__gamecube__))
-    // On Wii, assetdir/datadir is stored as a data/ subdirectory of the path 
-    // containing the game binary. Wii needs absolute paths for some reason, so 
+    // On Wii, assetdir/datadir is stored as a data/ subdirectory of the path
+    // containing the game binary. Wii needs absolute paths for some reason, so
     // determine the path the binary is running from and use that as a base.
     //
-    // note that we're hijacking the homedir variable here because it isn't 
+    // note that we're hijacking the homedir variable here because it isn't
     // otherwise used for Wii, and using it also eliminates a compiler warning.
     homedir = NULL;
     const char* assetdirname("data/");
