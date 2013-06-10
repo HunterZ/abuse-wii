@@ -34,6 +34,15 @@
 #   endif    /* __APPLE__ */
 #endif    /* HAVE_OPENGL */
 
+#if (defined(__wii__) || defined(__gamecube__))
+// for reading widescreen system state
+#include <ogc/conf.h>
+
+// for performing widescreen compensation
+extern "C" void WII_ChangeSquare(int xscale, int yscale, int xshift, int yshift);
+//extern "C" void WII_SetWidescreen(int wide);
+#endif
+
 #include "common.h"
 
 #include "filter.h"
@@ -116,6 +125,24 @@ void set_mode(int mode, int argc, char **argv)
 #if (defined(__wii__) || defined(__gamecube__))
     // Wii SDL doesn't seem to fall-back to 16bpp, so just set 16bpp directly
     window = SDL_SetVideoMode(flags.xres, flags.yres, 16, vidFlags | SDL_ANYFORMAT);
+
+    // stretch to 4:3 within 16:9
+    if ( CONF_GetAspectRatio() == CONF_ASPECT_16_9 && !flags.widestretch)
+    {
+        // vertical scaling also has to be twiddled to prevent weirdness
+        // the values used result in the same vertical space used for all cases
+        int ysize;
+        switch (yres)
+        {
+            case 200: ysize = 240; break; // scale=1, stretch to fill more of the screen
+            case 240: ysize = 200; break; // scale=1, compress to avoid overscan
+            case 400: ysize = 240; break; // scale=2, stretch to fill more of the screen
+            case 480: ysize = 200; break; // scale=2, compress to avoid overscan
+            default:  ysize = 200;        // default to squishing to 200 for unknown situations
+        }
+
+        WII_ChangeSquare(240, ysize, 0, 0);
+    }
 #else
     // Create the window with a preference for 8-bit (palette animations!), but accept any depth */
     window = SDL_SetVideoMode(flags.xres, flags.yres, 8, vidFlags | SDL_ANYFORMAT);

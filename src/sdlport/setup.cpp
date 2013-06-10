@@ -84,6 +84,7 @@ void showHelp()
 //    printf( "  -y <arg>          Set the height to <arg>\n" );
 #if (defined(__wii__) || defined(__gamecube__))
     printf( "** abuse-wii Options **\n" );
+    printf( "  -widestretch      Stretch picture horizontally when Wii is set for 16:9\n" );
     printf( "  -swapbuttons      Swap jump/activate/climb button controls\n" );
     printf( "  -usevaxis         Allow vertical axis to control jump/activate/climb\n" );
     printf( "  -hdeadzone <arg>  Set horizontal axis deadzone to <arg> percent\n" );
@@ -360,6 +361,10 @@ void parseCommandLine( int argc, char **argv )
             exit( 0 );
         }
 #if (defined(__wii__) || defined(__gamecube__))
+        else if( !strcasecmp( argv[ii], "-widestretch" ) )
+        {
+            flags.widestretch = 1;
+        }
         else if( !strcasecmp( argv[ii], "-swapbuttons" ) )
         {
             flags.swapbuttons = 1;
@@ -405,16 +410,19 @@ void setup( int argc, char **argv )
     flags.nosdlparachute    = 0;            // SDL error handling
     flags.xres = xres       = 320;          // Default window width
     flags.yres = yres       = 200;          // Default window height
+    scale                   = 2;            // Default scale amount
 #ifdef __APPLE__
     flags.gl                = 1;            // Use opengl
     flags.doublebuf         = 1;            // Do double buffering
 #elif (defined(__wii__) || defined(__gamecube__))
     flags.gl                = 0;            // Don't use opengl
     flags.doublebuf         = 1;            // Do double buffering
+    flags.widestretch       = 0;            // Don't stretch in widescreen
     flags.swapbuttons       = 0;            // Don't swap buttons
     flags.usevaxis          = 0;            // Don't use vertical axis
     flags.hdeadzone         = static_cast<int>(32768.0 * 0.15); // Default horizontal deadzone
     flags.vdeadzone         = static_cast<int>(32768.0 * 0.30); // Default vertical deadzone
+    scale                   = 1;            // Default Wii to a scale of 1, which causes a bit of smoothing
 #else
     flags.gl                = 0;            // Don't use opengl
     flags.doublebuf         = 0;            // No double buffering
@@ -428,7 +436,6 @@ void setup( int argc, char **argv )
     keys.right              = key_value( "RIGHT" );
     keys.b3                 = key_value( "CTRL_R" );
     keys.b4                 = key_value( "INSERT" );
-    scale                   = 2;            // Default scale amount
 
     // Display our name and version
     printf( "%s %s\n", PACKAGE_NAME, PACKAGE_VERSION );

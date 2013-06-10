@@ -24,6 +24,7 @@ struct flags_struct
     short overlay;
     short gl;
 #if (defined(__wii__) || defined(__gamecube__))
+    short widestretch;
     short usevaxis;
     short swapbuttons;
     int hdeadzone;
