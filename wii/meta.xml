@@ -3,7 +3,7 @@
     <name>Abuse Wii</name>
     <coder>Many</coder>
     <version>0.8.684.2</version>
-    <release_date>20130609</release_date>
+    <release_date>20130613</release_date>
     <short_description>Abuse for the Wii</short_description>
     <long_description>Abuse is a dark 2D side-scrolling platform game developed by Crack dot Com in 1995. It features beautiful lighting, realistic animation and nasty alien-like creatures to destroy. It is now maintained by Sam Hocevar in an attempt to prevent it from vanishing from the Internet. Wii port by HunterZ based on Sam Hocevar's source at http://abuse.zoy.org/</long_description>
     <arguments>
