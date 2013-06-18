@@ -13,10 +13,10 @@
         <!-- uncomment the following option to make the game stretch to fill the screen in 16:9 widescreen mode -->
         <!-- <arg>-widestretch</arg> -->
 
-        <!-- uncomment the following option to allow use of the analog stick to jump/climb/activate -->
+        <!-- uncomment the following option to swap the jump/activate/climb shoulder button assignments -->
         <!-- <arg>-swapbuttons</arg> -->
 
-        <!-- uncomment the following option to swap the jump/activate/climb shoulder button assignments -->
+        <!-- uncomment the following option to allow use of the analog stick to jump/climb/activate -->
         <!-- <arg>-usevaxis</arg> -->
 
         <!-- the following options specify the horizontal and vertical joystick deadzones, in floating-point percentages -->
